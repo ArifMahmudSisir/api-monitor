@@ -13,7 +13,7 @@ Built with **Node.js**, **Express**, **MongoDB**, and your choice of **OpenAI** 
 - **Writes AI-powered alerts** — not just "HTTP 500 error", but *"AppointmentAPI returned a server error with status 500 and 0 records. Possible database outage or downstream service failure."*
 - **Deduplicates** intelligently — if the same issue fires 50 times, it bumps a counter instead of spamming you with 50 identical alerts
 - **Emails reports** to any address you choose (or falls back gracefully if email isn't configured)
-- **Live dashboard** at `http://localhost:5000` that auto-refreshes every 15 seconds
+- **Live dashboard** at `http://localhost:3000` that auto-refreshes every 15 seconds
 
 ---
 
@@ -115,7 +115,7 @@ npm start
 Once running, open your browser and go to:
 
 ```
-http://localhost:5000
+http://localhost:3000
 ```
 
 You'll see the live alert dashboard. It auto-refreshes every 15 seconds.
@@ -151,33 +151,33 @@ If you prefer `curl` over the UI:
 
 ```bash
 # Analyze a batch of API responses
-curl -X POST http://localhost:5000/monitor \
+curl -X POST http://localhost:3000/monitor \
   -H "Content-Type: application/json" \
   -d @data/sample.json
 
 # Run the built-in sample data
-curl -X POST "http://localhost:5000/monitor/sample"
+curl -X POST "http://localhost:3000/monitor/sample"
 
 # Run sample data AND email the report
-curl -X POST "http://localhost:5000/monitor/sample?email=true"
+curl -X POST "http://localhost:3000/monitor/sample?email=true"
 
 # Send to a specific email address
-curl -X POST "http://localhost:5000/monitor/sample?email=true&recipient=you@example.com"
+curl -X POST "http://localhost:3000/monitor/sample?email=true&recipient=you@example.com"
 
 # Get all active alerts
-curl http://localhost:5000/alerts
+curl http://localhost:3000/alerts
 
 # Filter by severity
-curl "http://localhost:5000/alerts?severity=critical"
+curl "http://localhost:3000/alerts?severity=critical"
 
 # Get alert counts by severity
-curl http://localhost:5000/alerts/stats
+curl http://localhost:3000/alerts/stats
 
 # Resolve an alert
-curl -X PATCH http://localhost:5000/alerts/<id>/resolve
+curl -X PATCH http://localhost:3000/alerts/<id>/resolve
 
 # Health check
-curl http://localhost:5000/health
+curl http://localhost:3000/health
 ```
 
 ---
