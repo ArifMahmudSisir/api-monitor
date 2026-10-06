@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16222e; --muted:#5d6b79; --paper:#f3f5f7; --panel:#fff; --rule:#d8dee4;
+  --critical:#b3261e; --high:#c2570c; --medium:#8f7400; --low:#2f6f8f; --accent:#15536b;
+  --sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--ink:#e7edf2;--muted:#95a3b0;--paper:#0f161d;--panel:#17212b;--rule:#2a3744;
+    --critical:#f0877f;--high:#f0a064;--medium:#d9bb4a;--low:#76b4d1;--accent:#7cc0dc}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans)}
+header{max-width:1120px;margin:0 auto;padding:32px 20px 8px}
+h1{margin:0;font:600 34px/1.1 var(--serif)}
+#summary{margin:6px 0 0;color:var(--muted)}
+main{max-width:1120px;margin:0 auto;padding:16px 20px 48px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.chip,button,select{font:600 14px var(--sans);border:1px solid var(--rule);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:6px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip small{font-weight:400;opacity:.75;margin-left:4px}
+select{margin-left:auto}
+ul{list-style:none;margin:0;padding:0;border:1px solid var(--rule);border-radius:8px;background:var(--panel);overflow:hidden}
+li.alert{display:grid;grid-template-columns:6px 1fr auto;gap:16px;padding:16px 18px 16px 0;border-top:1px solid var(--rule)}
+li.alert:first-child{border-top:0}
+.rail{background:var(--c)}
+.alert[data-sev=critical]{--c:var(--critical)}.alert[data-sev=high]{--c:var(--high)}
+.alert[data-sev=medium]{--c:var(--medium)}.alert[data-sev=low]{--c:var(--low)}
+.head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.api{font-weight:700}
+.sev{color:var(--c);font-weight:600;font-size:14px}
+.msg{font:400 18px/1.45 var(--serif);margin:6px 0 8px;max-width:62ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.tag{font-size:13px;border:1px solid var(--rule);border-radius:4px;padding:1px 7px;color:var(--muted)}
+.meta{font-size:14px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.resolve{align-self:start}
+.empty{padding:40px 24px;text-align:center;color:var(--muted)}
+aside{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:18px}
+aside h2{margin:0 0 4px;font:600 20px var(--serif)}
+aside p{margin:0 0 12px;color:var(--muted);font-size:14px}
+textarea{width:100%;height:230px;resize:vertical;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:10px}
+.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){.primary{color:#0b1218}}
+label.mail{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
+#result{margin-top:12px;font-size:14px;min-height:20px}
+#result.err{color:var(--critical)}
+#result.warn{color:var(--high)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.6;cursor:wait}
+@media (prefers-reduced-motion:no-preference){li.alert.fresh{animation:flash 1.6s ease-out}@keyframes flash{from{background:color-mix(in srgb,var(--c) 18%,transparent)}}}
+</style>
+</head>
+<body>
+<header>
+  <h1>API alerts</h1>
+  <p id="summary" aria-live="polite">Loading...</p>
+</header>
+<main>
+  <section aria-label="Alerts">
+    <div class="toolbar" id="filters" role="group" aria-label="Filter by severity"></div>
+    <ul id="list"></ul>
+  </section>
+  <aside>
+    <h2>Check API responses</h2>
+    <p>Paste a JSON array of API responses, or run the bundled sample.</p>
+    <label for="payload" class="sr" hidden>API responses JSON</label>
+    <textarea id="payload" spellcheck="false"></textarea>
+    <label class="mail">
+      <input type="checkbox" id="email"> Email the anomaly report
+      <input type="email" id="emailTo" placeholder="Custom recipient (optional)" style="margin-left:8px; flex:1; padding:4px 8px; border:1px solid var(--rule); border-radius:4px; font:inherit; font-size:14px; background:var(--paper); color:var(--ink);">
+    </label>
+    <div class="row">
+      <button class="primary" id="run">Analyze responses</button>
+      <button id="sample">Run sample data</button>
+    </div>
+    <div id="result" role="status"></div>
+  </aside>
+</main>
+<script>
+const SEVS=['critical','high','medium','low'];
+const state={severity:'',status:'active',stats:{},seen:new Set(),first:true};
+const $=(id)=>document.getElementById(id);
+const SAMPLE=[
+ {api_name:"PatientDataAPI",response_time_ms:1200,status_code:200,records_returned:50},
+ {api_name:"AppointmentAPI",response_time_ms:5500,status_code:500,records_returned:0}
+];
+$('payload').value=JSON.stringify(SAMPLE,null,2);
+
+const el=(tag,props={},...kids)=>{const n=document.createElement(tag);Object.assign(n,props);kids.flat().forEach(k=>n.append(k));return n};
+const ago=(d)=>{const s=Math.max(1,Math.round((Date.now()-new Date(d))/1000));
+  if(s<60)return s+'s ago';if(s<3600)return Math.round(s/60)+'m ago';
+  if(s<86400)return Math.round(s/3600)+'h ago';return Math.round(s/86400)+'d ago'};
+
+async function api(path,opts){
+  const res=await fetch(path,opts);
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||('Request failed ('+res.status+')'));
+  return data;
+}
+
+function renderFilters(){
+  const box=$('filters');box.replaceChildren();
+  const mk=(label,val,n)=>{
+    const b=el('button',{className:'chip',type:'button'},label,n==null?'':el('small',{},String(n)));
+    b.setAttribute('aria-pressed',String(state.severity===val));
+    b.onclick=()=>{state.severity=val;refresh()};box.append(b)};
+  mk('All','',state.stats.total);
+  SEVS.forEach(s=>mk(s[0].toUpperCase()+s.slice(1),s,state.stats[s]));
+  const sel=el('select',{id:'status',ariaLabel:'Alert status'},
+    el('option',{value:'active',textContent:'Active'}),el('option',{value:'resolved',textContent:'Resolved'}));
+  sel.value=state.status;sel.onchange=()=>{state.status=sel.value;refresh()};box.append(sel);
+}
+
+function renderAlert(a){
+  const li=el('li',{className:'alert'+(!state.first&&!state.seen.has(a._id)?' fresh':'')});
+  li.dataset.sev=a.severity;
+  const m=a.metrics||{};
+  const body=el('div',{},
+    el('div',{className:'head'},el('span',{className:'api',textContent:a.apiName}),el('span',{className:'sev',textContent:a.severity})),
+    el('p',{className:'msg',textContent:a.message}),
+    el('div',{className:'tags'},[...new Set(a.issues.map(i=>i.type))].map(t=>el('span',{className:'tag',textContent:t.replaceAll('_',' ').toLowerCase()}))),
+    el('div',{className:'meta'},
+      el('span',{textContent:'Status '+m.statusCode}),el('span',{textContent:m.responseTimeMs+' ms'}),
+      el('span',{textContent:m.recordsReturned+' records'}),
+      el('span',{textContent:'Seen '+a.occurrences+'x, last '+ago(a.lastSeenAt)}),
+      el('span',{textContent:a.messageSource==='ai'?'Written by AI':'Template message'})));
+  const side=a.status==='active'?el('button',{className:'resolve',type:'button',textContent:'Mark resolved'}):el('span',{className:'meta',textContent:'Resolved '+ago(a.resolvedAt)});
+  if(a.status==='active')side.onclick=async()=>{side.disabled=true;try{await api('/alerts/'+a._id+'/resolve',{method:'PATCH'});refresh()}catch(e){side.disabled=false;show(e.message,true)}};
+  li.append(el('div',{className:'rail'}),body,side);
+  return li;
+}
+
+async function refresh(){
+  try{
+    const q=new URLSearchParams({status:state.status,limit:'100'});if(state.severity)q.set('severity',state.severity);
+    const [list,stats]=await Promise.all([api('/alerts?'+q),api('/alerts/stats')]);
+    state.stats=stats;renderFilters();
+    const ul=$('list');ul.replaceChildren();
+    if(!list.alerts.length)ul.append(el('li',{className:'empty',textContent:state.status==='active'?'No active alerts. Analyze some API responses to get started.':'No resolved alerts yet.'}));
+    list.alerts.forEach(a=>ul.append(renderAlert(a)));
+    list.alerts.forEach(a=>state.seen.add(a._id));state.first=false;
+    $('summary').textContent=stats.total?stats.total+' active alert'+(stats.total>1?'s':'')+', '+stats.critical+' critical. Updated '+new Date().toLocaleTimeString():'All clear. Updated '+new Date().toLocaleTimeString();
+  }catch(e){$('summary').textContent='Cannot reach the server: '+e.message}
+}
+
+function show(msg,err,warn){const r=$('result');r.textContent=msg;r.className=err?'err':warn?'warn':''}
+function report(r){
+  const s=r.summary;
+  const emailRequested=$('email').checked;
+  let emailNote='';
+  if(emailRequested){
+    if(r.email.sent){
+      emailNote=' ✅ Email sent!';
+    } else if(r.alerts.length===0 && s.deduplicated>0){
+      emailNote=' ⚠️ No email sent — all anomalies are already tracked. Mark existing alerts as resolved, then run again to trigger a new email.';
+    } else if(r.alerts.length===0 && s.anomalies===0){
+      emailNote=' ℹ️ No email sent — no anomalies were detected.';
+    } else {
+      emailNote=` ⚠️ Email not sent: ${r.email.reason||'unknown reason'}.`;
+    }
+  }
+  const hasWarn=emailRequested&&!r.email.sent;
+  show(`Checked ${s.received}: ${s.healthy} healthy, ${r.alerts.length} new alert(s), ${s.deduplicated} already tracked`+
+    (s.rejected.length?`, ${s.rejected.length} rejected`:'')+'.'+emailNote, false, hasWarn);
+}
+async function submit(path,body){
+  const run=$('run'),smp=$('sample');run.disabled=smp.disabled=true;
+  try{
+    const q=new URLSearchParams();
+    if($('email').checked){
+      q.set('email','true');
+      if($('emailTo').value) q.set('recipient', $('emailTo').value);
+    }
+    const r=await api(path+(q.toString()?'?'+q.toString():''),{method:'POST',headers:{'Content-Type':'application/json'},body});
+    report(r);await refresh();
+  }catch(e){show(e.message,true)}finally{run.disabled=smp.disabled=false}
+}
+$('run').onclick=()=>{
+  let parsed;try{parsed=JSON.parse($('payload').value)}catch{return show('The JSON is not valid. Check commas and quotes.',true)}
+  submit('/monitor',JSON.stringify(parsed));
+};
+$('sample').onclick=()=>submit('/monitor/sample');
+refresh();setInterval(refresh,15000);
+</script>
+</body>
+</html>
